@@ -1,0 +1,154 @@
+Bootstrap: docker
+From: ros:melodic-robot-bionic
+
+%environment
+        ## Export workspace destination for extensions
+        #export ROS_WORKSPACE=/workspace
+        ## Export output directory
+        #export OUTPUT=/output
+        ## Tell ROS to utilize output directory for logging
+        #export ROS_LOG_DIR=$OUTPUT
+        #export ROS_HOME=$OUTPUT
+        ## Source new workspace to have DyRET packages in path
+        #. /workspace/devel/setup.sh
+
+%setup
+        #mkdir -p $SINGULARITY_ROOTFS/workspace/src
+        # Download latest version of DyRET packages from GitHub
+        #git clone https://github.com/dyret-robot/dyret_common.git $SINGULARITY_ROOTFS/workspace/src/dyret_common
+        #git clone https://github.com/dyret-robot/dyret_simulation.git $SINGULARITY_ROOTFS/workspace/src/dyret_simulation
+
+%post
+        # Create folders for output and Abel
+        #mkdir /output /cluster /projects /work /usit
+        #apt update && apt install -y gazebo9 libgazebo9-dev ros-melodic-gazebo-ros-pkgs ros-melodic-gazebo-ros-control ros-melodic-rostime-dbgsym ros-melodic-rostime-dbgsym
+        # Make sure to source and build workspace again
+        #cd /workspace
+        #. /opt/ros/melodic/setup.sh
+        #catkin_make -j4
+        #catkin_make install
+
+%post
+
+apt-get -y update && apt-get install -y \
+  gazebo9 \
+  libgazebo9-dev \
+  ros-melodic-gazebo-ros-pkgs \
+  ros-melodic-gazebo-ros-control \
+  ros-melodic-rostime-dbgsym \
+  python-rosdep \
+  python-rosinstall \
+  python-rosinstall-generator \
+  python-wstool \
+  build-essential \
+  ros-melodic-desktop-full \
+  ros-melodic-geodesy \
+  ros-melodic-pcl* \
+  byobu \
+  cmake \
+  git \
+  wget \
+  gfortran \
+  libavcodec-dev \
+  libavformat-dev \
+  libatlas-base-dev \
+  libboost-program-options-dev \
+  libboost-filesystem-dev \
+  libboost-graph-dev \
+  libboost-regex-dev \
+  libboost-system-dev \
+  libboost-test-dev \
+  libcgal-dev \
+  libcgal-qt5-dev \
+  libdc1394-22-dev \
+  libeigen3-dev \
+  libfreeimage-dev \
+  libgflags-dev \
+  libglew-dev \
+  libgoogle-glog-dev \
+  libgtk2.0-dev \
+  libjpeg-dev \
+  libsuitesparse-dev \
+  libswscale-dev \
+  libtbb2 \
+  libtbb-dev \
+  libtiff-dev \
+  libqt5opengl5-dev \
+  mjpegtools \
+  pcl-tools \
+  pkg-config \
+  python3-dev \
+  python3-numpy \
+  python3-dev \
+  python3-numpy \
+  python3-pip \
+  python3-setuptools \
+  qtbase5-dev \
+  unzip \
+  vim && \
+  rm -rf /var/lib/apt/lists/*
+
+# Build and install ceres solver
+git clone https://github.com/ceres-solver/ceres-solver.git --branch 1.14.0 && \
+cd ceres-solver && \
+mkdir build && \
+cd build && \
+cmake .. -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF && \
+make -j8 && \
+make install && \
+make clean
+
+# Nabo
+git clone https://github.com/ethz-asl/libnabo.git libnabo && \
+cd libnabo && \
+mkdir build && \
+cd build && \
+cmake .. -DUSE_OPEN_MP=False && \
+make -j4 && \
+make install && \
+make clean
+
+# Eigen
+wget https://gitlab.com/libeigen/eigen/-/archive/3.3.4/eigen-3.3.4.zip && \
+unzip eigen-3.3.4.zip && \
+cd eigen-3.3.4 && \
+mkdir build && \
+cd build && \
+cmake .. && \
+make install && \
+make clean
+
+git clone https://github.com/georges-chahine/libpointmatcher libpointmatcher && \
+cd libpointmatcher && \
+mkdir build && \
+cd build && \
+cmake .. &&\
+make -j4 && \
+make install && \
+make clean
+
+# opencv
+wget https://github.com/opencv/opencv/archive/3.4.10.zip && \
+unzip 3.4.10.zip && \
+cd opencv-3.4.10 && \
+mkdir build && \
+cd build && \
+cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=/usr/local .. && \
+make -j8 && \
+make install && \
+make clean
+
+sed -i -e "s|"flann/ext/lz4.h"|"lz4.h"|g" /usr/include/flann/util/serialization.h
+sed -i -e "s|"flann/ext/lz4hc.h"|"lz4hc.h"|g" /usr/include/flann/util/serialization.h
+
+pip install --upgrade pip && \
+pip --no-cache-dir install \
+  matplotlib \
+  rawpy \
+  Pillow \
+  scipy==1.2.1 \
+  scikit-image==0.15.0 \
+  h5py==2.9.0 \
+  leveldb>=0.191 \
+  pyquaternion \
+  tqdm

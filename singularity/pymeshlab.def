@@ -1,0 +1,63 @@
+BootStrap: docker
+From: nvidia/cudagl:11.3.1-devel-ubuntu20.04
+#From: nvidia/cudagl:11.3.1-devel
+
+%environment
+  ## Set non-interactive to prevent asking for user inputs blocking image creation.
+  export DEBIAN_FRONTEND=noninteractive
+
+  ## Set timezone as it is required by some packages.
+  export TZ=Europe/Berlin
+
+  ## CUDA architectures, required by tiny-cuda-nn.
+  export TCNN_CUDA_ARCHITECTURES=80
+
+  ## CUDA Home, required to find CUDA in some packages.
+  export CUDA_HOME="/usr/local/cuda"
+
+  export PATH="$PATH":/usr/local/cuda-11.3/bin
+
+%post
+## Set non-interactive to prevent asking for user inputs blocking image creation.
+export DEBIAN_FRONTEND=noninteractive
+
+## Set timezone as it is required by some packages.
+export TZ=Europe/Berlin
+
+## CUDA architectures, required by tiny-cuda-nn.
+export TCNN_CUDA_ARCHITECTURES=80
+
+## CUDA Home, required to find CUDA in some packages.
+export CUDA_HOME="/usr/local/cuda"
+
+
+apt-get update && \
+  apt-get install -y --no-install-recommends \
+          git \
+          cmake \
+          vim \
+          build-essential \
+          libboost-program-options-dev \
+          libboost-filesystem-dev \
+          libboost-graph-dev \
+          libboost-regex-dev \
+          libboost-system-dev \
+          libboost-test-dev \
+          libeigen3-dev \
+          libsuitesparse-dev \
+          libfreeimage-dev \
+          libgoogle-glog-dev \
+          libgflags-dev \
+          libglew-dev \
+          qtbase5-dev \
+          python3-dev \
+          python3-pip \
+          vim \
+          wget
+
+pip3 install --upgrade pip && \
+pip3 --no-cache-dir install \
+  pymeshlab
+
+%labels
+Author Assia

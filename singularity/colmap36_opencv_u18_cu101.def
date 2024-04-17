@@ -1,0 +1,117 @@
+Bootstrap: docker
+From: nvidia/cuda:10.1-devel-ubuntu18.04
+
+%post
+apt-get -y update && apt-get -y install --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    gfortran \
+    libavcodec-dev \
+    libavformat-dev \
+    libatlas-base-dev \
+    libboost-program-options-dev \
+    libboost-filesystem-dev \
+    libboost-graph-dev \
+    libboost-regex-dev \
+    libboost-system-dev \
+    libboost-test-dev \
+    libcgal-dev \
+    libcgal-qt5-dev \
+    libdc1394-22-dev \
+    libeigen3-dev \
+    libfreeimage-dev \
+    libgflags-dev \
+    libglew-dev \
+    libgoogle-glog-dev \
+    libgtk2.0-dev \
+    libjpeg-dev \
+    libsuitesparse-dev \
+    libswscale-dev \
+    libtbb2 \
+    libtbb-dev \
+    libtiff-dev \
+    libqt5opengl5-dev \
+    pkg-config \
+    python3-dev \
+    python3-numpy \
+    python3-dev \
+    python3-numpy \
+    python3-pip \
+    python3-setuptools \
+    qtbase5-dev \
+    unzip \
+    vim \
+    wget && \
+    rm -rf /var/lib/apt/lists/*
+
+# Eigen
+wget https://gitlab.com/libeigen/eigen/-/archive/3.3.4/eigen-3.3.4.zip && \
+unzip eigen-3.3.4.zip && \
+cd eigen-3.3.4 && \
+mkdir build && \
+cd build && \
+cmake .. && \
+make install && \
+make clean
+
+# Build and install ceres solver
+git clone https://github.com/ceres-solver/ceres-solver.git --branch 1.14.0 && \
+cd ceres-solver && \
+mkdir build && \
+cd build && \
+cmake .. -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF && \
+make -j8 && \
+make install && \
+make clean
+
+# Build and install COLMAP
+# Note: This Dockerfile has been tested using COLMAP pre-release 3.6-dev.3.
+# Later versions of COLMAP (which will be automatically cloned as default) may
+# have problems using the environment described thus far. If you encounter
+# problems and want to install the tested release, then uncomment the branch
+# specification in the line below
+git clone https://github.com/colmap/colmap.git #--branch 3.6-dev.3 && \
+cd colmap && \
+git checkout dev && \
+mkdir build && \
+cd build && \
+cmake .. && \
+make -j8 && \
+make install && \
+make clean
+
+# Nabo
+git clone https://github.com/ethz-asl/libnabo.git libnabo && \
+cd libnabo && \
+mkdir build && \
+cd build && \
+cmake .. -DUSE_OPEN_MP=False && \
+make && \
+make install && \
+make clean
+
+# opencv
+wget https://github.com/opencv/opencv/archive/3.4.10.zip && \
+unzip 3.4.10.zip && \
+cd opencv-3.4.10 && \
+mkdir build && \
+cd build && \
+cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=/usr/local .. && \
+make -j8 && \
+make install && \
+make clean
+
+
+pip3 install --upgrade pip && \
+pip3 --no-cache-dir install \
+  Cython==0.29.3 \
+  numpy==1.16.2 \
+  scipy==1.2.1 \
+  scikit-image==0.15.0 \
+  h5py==2.9.0 \
+  leveldb>=0.191 \
+  opencv-python==3.4.10.37 \
+  opencv-contrib-python==3.4.10.37 \
+  pyquaternion \
+  tqdm==4.28.1 \

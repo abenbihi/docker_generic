@@ -1,0 +1,146 @@
+BootStrap: docker
+From: nvidia/cudagl:11.3.1-devel-ubuntu20.04
+
+%environment
+  ## Set non-interactive to prevent asking for user inputs blocking image creation.
+  export DEBIAN_FRONTEND=noninteractive
+
+  ## Set timezone as it is required by some packages.
+  export TZ=Europe/Berlin
+
+  ## CUDA architectures, required by tiny-cuda-nn.
+  export TCNN_CUDA_ARCHITECTURES=80
+
+  ## CUDA Home, required to find CUDA in some packages.
+  export CUDA_HOME="/usr/local/cuda"
+
+%post
+## Set non-interactive to prevent asking for user inputs blocking image creation.
+export DEBIAN_FRONTEND=noninteractive
+
+## Set timezone as it is required by some packages.
+export TZ=Europe/Berlin
+
+## CUDA architectures, required by tiny-cuda-nn.
+export TCNN_CUDA_ARCHITECTURES=80
+
+## CUDA Home, required to find CUDA in some packages.
+export CUDA_HOME="/usr/local/cuda"
+
+apt-get update && \
+  apt-get install -y --no-install-recommends \
+  build-essential \
+  cmake \
+  ffmpeg \
+  git \
+  libatlas-base-dev \
+  libboost-filesystem-dev \
+  libboost-graph-dev \
+  libboost-program-options-dev \
+  libboost-system-dev \
+  libboost-test-dev \
+  libcgal-dev \
+  libeigen3-dev \
+  libfreeimage-dev \
+  libgflags-dev \
+  libglew-dev \
+  libgoogle-glog-dev \
+  libmetis-dev \
+  libprotobuf-dev \
+  libqt5opengl5-dev \
+  libsuitesparse-dev \
+  nano \
+  protobuf-compiler \
+  python3.8-dev \
+  python3-pip \
+  qtbase5-dev \
+  unzip \
+  vim \
+  wget && \
+  rm -rf /var/lib/apt/lists/*
+
+export PATH="$PATH":/usr/local/cuda-11.3/bin
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH":/usr/local/cuda-11.3/targets/x86_64-linux/lib/stubs/
+export LIBRARY_PATH="$LIBRARY_PATH":/usr/local/cuda-11.3/targets/x86_64-linux/lib/stubs/
+
+# Install GLOG (required by ceres).
+mkdir /build/ && \
+cd /build && \
+git clone --branch v0.6.0 https://github.com/google/glog.git --single-branch && \
+    cd glog && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make -j8 && \
+    make install && \
+    cd ../.. && \
+    rm -r glog
+
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH":/usr/local/lib
+
+# Install Ceres-solver (required by colmap).
+cd /build && \
+git clone --branch 2.1.0 https://ceres-solver.googlesource.com/ceres-solver.git --single-branch && \
+    cd ceres-solver && \
+    git checkout $(git describe --tags) && \
+    mkdir build && \
+    cd build && \
+    cmake .. -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF && \
+    make -j8 && \
+    make install && \
+    cd ../.. && \
+    rm -r ceres-solver
+
+
+# because of colmap, looking for boost
+# and no, specifying the boost paths to cmake did not help
+# cmake .. -DBOOST_INCLUDEDIR=/usr/include/boost/ -DBOOST_ROOT=/usr/include/boost/&& \
+# so I am using this hack https://github.com/google-research/football/issues/311
+ln -s /usr/include /include
+
+# Install colmap.
+cd /build && \
+git clone --branch 3.7 https://github.com/colmap/colmap.git --single-branch && \
+  cd colmap && \
+  mkdir build && \
+  cd build && \
+  cmake .. && \
+  make -j8 && \
+  make install && \
+  cd ../.. && \
+  rm -r colmap
+
+pip3 install --upgrade pip && \
+  pip3 --no-cache-dir install \
+  setuptools \
+  pathtools \
+  promise
+
+pip3 --no-cache-dir install \
+  torch==1.12.1+cu113 \
+  torchvision==0.13.1+cu113 \
+  torchaudio==0.12.1 \
+  torchmetrics \
+  --extra-index-url https://download.pytorch.org/whl/cu113
+
+pip3 --no-cache-dir install \
+  tyro \
+  rich \
+  typing_extensions \
+  mediapy \
+  xatlas \
+  torchtyping \
+  wandb \
+  pymeshlab \
+  tensorboard \
+  imageio \
+  nerfacc
+
+pip3 --no-cache-dir install \
+  git+https://github.com/NVlabs/tiny-cuda-nn.git#subdirectory=bindings/torch
+
+cd /build/ && \
+git clone https://github.com/autonomousvision/sdfstudio.git && \
+cd sdfstudio && \
+git checkout 1a4c961 && \
+python3.8 -m pip install -e .
